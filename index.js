@@ -48,6 +48,7 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 wss.on("connection", (ws) => {
+  console.log("[dbg] ws connection");
   let remote = null;
   let headerParsed = false;
   let pending = [];
@@ -94,7 +95,9 @@ wss.on("connection", (ws) => {
         throw new Error("bad addr type");
       }
       const payload = data.subarray(offset);
+      console.log(`[dbg] target ${host}:${port} payload ${payload.length}`);
       remote = net.connect(port, host, () => {
+        console.log(`[dbg] connected to ${host}:${port}`);
         ws.send(Buffer.concat([Buffer.from([data[0], 0])]));
         if (payload.length) remote.write(payload);
         for (const chunk of pending) remote.write(chunk);
@@ -103,13 +106,15 @@ wss.on("connection", (ws) => {
       remote.on("data", (chunk) => {
         if (ws.readyState === ws.OPEN) ws.send(chunk);
       });
-      remote.on("error", () => {
+      remote.on("error", (e) => {
+        console.log(`[dbg] remote error ${e.code || e.message}`);
         try { ws.close(); } catch {}
       });
       remote.on("close", () => {
         try { ws.close(); } catch {}
       });
     } catch (e) {
+      console.log(`[dbg] header error ${e.message}`);
       try { ws.close(); } catch {}
     }
   });
